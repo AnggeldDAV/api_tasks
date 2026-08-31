@@ -13,6 +13,7 @@ pydantic-settings
 # Security - Auth
 bcrypt
 PyJWT
+python-multipart
 
 # Tests - HTTP client
 pytest
