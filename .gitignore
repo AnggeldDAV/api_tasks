@@ -1,0 +1,22 @@
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Secret environment files
+.env
+
+# SQLite Tests
+test.db
+*.db
+
+# Python files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Other
+.DS_Store

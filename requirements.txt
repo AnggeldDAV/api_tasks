@@ -1,0 +1,19 @@
+# Web y Servidor
+fastapi
+uvicorn
+
+# Base de datos y ORM
+sqlalchemy
+psycopg2-binary
+
+# Configuración y Variables de Entorno
+python-dotenv
+pydantic-settings
+
+# Seguridad y Autenticación
+bcrypt
+PyJWT
+
+# Pruebas y Cliente HTTP
+pytest
+httpx2
