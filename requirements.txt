@@ -1,19 +1,19 @@
-# Web y Servidor
+# Web - Server
 fastapi
 uvicorn
 
-# Base de datos y ORM
+# DB - ORM
 sqlalchemy
 psycopg2-binary
 
-# Configuración y Variables de Entorno
+# Conf - Envs
 python-dotenv
 pydantic-settings
 
-# Seguridad y Autenticación
+# Security - Auth
 bcrypt
 PyJWT
 
-# Pruebas y Cliente HTTP
+# Tests - HTTP client
 pytest
 httpx2
