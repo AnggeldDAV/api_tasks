@@ -3,15 +3,19 @@ from core.settings import get_settings, Settings
 from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
 from core.security import decodeJWT
 import jwt
 from crud.user import search_user
 from db.database import get_session_factory
-from db.database import Base,engine
+from db.database import Base
 
 def get_db(settings:Settings = Depends(get_settings)):
     session_factory = get_session_factory(settings.DATABASE_URL)
-    Base.metadata.create_all(bind=engine)
+    enginex = create_engine(
+    settings.DATABASE_URL, connect_args={"check_same_thread": False}
+)
+    Base.metadata.create_all(bind=enginex)
     db = session_factory()
     try:
         yield db
