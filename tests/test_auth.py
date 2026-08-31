@@ -9,7 +9,10 @@ def _create_user(client, name: str, password: str):
 
 
 def _login(client, username: str, password: str):
-    return client.post("/api/v1/auth/login", json={"username": username, "password": password})
+    return client.post(
+        "/api/v1/auth/login",
+        data={"username": username, "password": password},
+    )
 
 
 # ------------------------------------------------------------
