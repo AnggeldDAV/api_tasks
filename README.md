@@ -1,37 +1,43 @@
-# API de gestion de usuarios y tareas
+# API de gestión de usuarios y tareas
 
-API REST desarrollada con FastAPI para la gestion de usuarios y tareas, incluyendo autenticacion mediante JWT, autorizacion basada en el usuario propietario de los recursos, persistencia en PostgreSQL, tests automatizados y pipeline CI/CD.
+API REST desarrollada con FastAPI para la gestión de usuarios y tareas, con autenticación JWT, autorización por propietario de recursos, persistencia en PostgreSQL, tests automatizados y pipeline CI/CD.
 
-El proyecto ha sido desarrollado como proyecto practico para mejorar conocimientos de desarrollo backend con Python y adquirir experiencia con herramientas y practicas utilizadas en entornos profesionales.
+El proyecto fue desarrollado como práctica personal para reforzar conocimientos de backend con Python y trabajar con herramientas y prácticas habituales en entornos profesionales.
 
-## Caracteristicas
+## Demo
 
-- API REST desarrollada con FastAPI.
-- Gestion de usuarios.
-- Gestion de tareas asociadas a usuarios.
-- Registro y autenticacion de usuarios.
-- Autenticacion mediante JWT.
+- API desplegada: https://api-tasks-xqul.onrender.com
+- Documentación Swagger: https://api-tasks-xqul.onrender.com/docs
+
+> La ruta raíz `/` no expone funcionalidad. La API se encuentra bajo el prefijo `/api/v1` y la documentación interactiva está disponible en `/docs`.
+
+## Características principales
+
+- API REST con FastAPI.
+- CRUD de usuarios y tareas.
+- Registro y login de usuarios.
+- Autenticación mediante JWT.
 - Contraseñas almacenadas mediante hash.
-- Autorizacion para impedir el acceso a recursos de otros usuarios.
-- Validacion de datos mediante Pydantic.
-- Persistencia mediante SQLAlchemy.
-- PostgreSQL como base de datos de produccion.
-- SQLite utilizada para los tests.
+- Autorización basada en el propietario del recurso.
+- Validación de datos mediante Pydantic.
+- Persistencia con SQLAlchemy.
+- PostgreSQL en producción.
+- SQLite para tests.
 - Tests automatizados con pytest.
-- Tests de endpoints, validaciones, autenticacion y autorizacion.
-- Documentacion interactiva mediante Swagger/OpenAPI.
-- Endpoint de health check.
-- Integracion continua mediante GitHub Actions.
-- Despliegue automatico en Render despues de superar los tests.
+- Documentación OpenAPI/Swagger.
+- Health check.
+- Integración continua con GitHub Actions.
+- Despliegue automático en Render cuando los tests finalizan correctamente.
 
-## Tecnologias
+## Tecnologías
 
 - Python 3.11
 - FastAPI
 - SQLAlchemy
 - PostgreSQL
+- SQLite
 - Pydantic / Pydantic Settings
-- JWT
+- PyJWT
 - bcrypt
 - pytest
 - HTTPX
@@ -40,7 +46,8 @@ El proyecto ha sido desarrollado como proyecto practico para mejorar conocimient
 
 ## Estructura del proyecto
 
-La estructura principal del proyecto sigue una separacion por responsabilidades:
+La aplicación está organizada por responsabilidades:
+
 ```text
 app/
 ├── api/
@@ -50,32 +57,25 @@ app/
 │       ├── health.py
 │       ├── task.py
 │       └── user.py
-│
 ├── core/
 │   ├── security.py
 │   └── settings.py
-│
 ├── crud/
 │   ├── task.py
 │   └── user.py
-│
 ├── db/
 │   ├── database.py
 │   └── init_db.py
-│
 ├── deps/
 │   └── deps.py
-│
 ├── models/
 │   ├── task.py
 │   └── user.py
-│
 ├── schemas/
 │   ├── auth.py
 │   ├── task.py
 │   ├── token.py
 │   └── user.py
-│
 └── main.py
 
 tests/
@@ -88,34 +88,19 @@ tests/
 └── workflows/
     └── ci-cd.yml
 
-.env
 .env.test
 .gitignore
 pytest.ini
 requirements.txt
 README.md
 ```
-## Enrutador principal de la API
 
-El archivo `app/api/v1/api.py` contiene el enrutador principal que agrega todos los enrutadores de los distintos recursos de la API. Cada enrutador se incluye con un prefijo y etiquetas para la documentacion automatica.
+## Autenticación y autorización
 
-```python
-from fastapi import APIRouter
-from api.v1 import task, user, auth, health
+La API utiliza JWT para autenticar las peticiones a endpoints protegidos.
 
-api_router = APIRouter()
+Flujo general:
 
-api_router.include_router(user.api_router, prefix="/users", tags=["users"])
-api_router.include_router(task.api_router, prefix="/tasks", tags=["tasks"])
-api_router.include_router(auth.api_router, prefix="/auth", tags=["auth"])
-api_router.include_router(health.api_router, prefix="/health", tags=["health"])
-```
-Este enrutador principal se monta en la aplicacion FastAPI dentro de app/main.py bajo el prefijo /api/v1, de modo que todas las rutas definidas en los enrutadores quedan disponibles bajo esa base.
-## Autenticacion
-
-La API utiliza JWT (JSON Web Tokens) para autenticar las peticiones a endpoints protegidos.
-
-El flujo es:
 ```text
 Registro
    ↓
@@ -127,9 +112,7 @@ Base de datos
 
 Login
    ↓
-Usuario + contraseña
-   ↓
-Verificacion
+Verificación de credenciales
    ↓
 JWT
    ↓
@@ -138,111 +121,49 @@ Authorization: Bearer <token>
 Endpoint protegido
 ```
 
-Las contraseñas no se almacenan directamente, sino mediante un hash.
+El token permite identificar al usuario autenticado. A partir de ese usuario, la API aplica reglas de autorización para impedir el acceso, modificación o eliminación de recursos pertenecientes a otros usuarios.
 
-Los endpoints protegidos obtienen el usuario actual a partir del JWT y utilizan su identificador para comprobar que puede acceder al recurso solicitado.
+Principales reglas:
 
-## Usuarios
+- `POST /api/v1/users/` es público.
+- Los endpoints protegidos requieren autenticación.
+- Un usuario solo puede consultar, modificar o eliminar su propio usuario.
+- Una tarea se asocia automáticamente al usuario autenticado.
+- Un usuario solo puede consultar, modificar o eliminar sus propias tareas.
+- Una petición sin autenticación devuelve `401`.
+- Un usuario autenticado sin permisos devuelve `403`.
+- Un recurso inexistente devuelve `404`.
 
-### Crear usuario
+## Endpoints principales
 
-`POST /api/v1/users/`
+### Usuarios
 
-Endpoint publico.
-
-Ejemplo:
-```json
-{
-  "name": "usuario",
-  "password": "password123"
-}
-```
-Respuesta:
-```json
-{
-  "id": 1,
-  "name": "usuario"
-}
+```text
+POST   /api/v1/users/
+GET    /api/v1/users/
+GET    /api/v1/users/{id}
+PUT    /api/v1/users/{id}
+DELETE /api/v1/users/{id}
 ```
 
-### Obtener usuarios
+### Tareas
 
-`GET /api/v1/users/`
-
-Requiere autenticacion.
-
-### Obtener usuario
-
-`GET /api/v1/users/{id}`
-
-El usuario autenticado solamente puede consultar su propio usuario.
-
-### Actualizar usuario
-
-`PUT /api/v1/users/{id}`
-
-El usuario solamente puede modificar su propia informacion.
-
-### Eliminar usuario
-
-`DELETE /api/v1/users/{id}`
-
-El usuario solamente puede eliminar su propia cuenta.
-
-## Tareas
-
-Las tareas pertenecen a un usuario.
-
-### Crear tarea
-
-`POST /api/v1/tasks/`
-
-Requiere autenticacion.
-
-La tarea se asocia automaticamente al usuario obtenido del JWT.
-
-Ejemplo:
-```json
-{
-  "title": "Implementar tests",
-  "description": "Crear tests para la API",
-  "state": "in_progress",
-  "priority": true,
-  "date": "2026-01-01T00:00:00"
-}
+```text
+POST   /api/v1/tasks/
+GET    /api/v1/tasks/
+GET    /api/v1/tasks/{id}
+PUT    /api/v1/tasks/{id}
+DELETE /api/v1/tasks/{id}
 ```
 
-### Obtener tareas
+### Autenticación
 
-`GET /api/v1/tasks/`
+```text
+POST /api/v1/auth/login
+```
 
-Devuelve unicamente las tareas pertenecientes al usuario autenticado.
+El login utiliza OAuth2 Password Flow y devuelve un token JWT:
 
-### Obtener una tarea
-
-`GET /api/v1/tasks/{id}`
-
-El usuario solamente puede acceder a sus propias tareas.
-
-### Actualizar tarea
-
-`PUT /api/v1/tasks/{id}`
-
-El usuario solamente puede modificar sus propias tareas.
-
-### Eliminar tarea
-
-`DELETE /api/v1/tasks/{id}`
-
-El usuario solamente puede eliminar sus propias tareas.
-
-## Login
-
-`POST /api/v1/auth/login`
-
-Utiliza el flujo OAuth2 Password y recibe las credenciales mediante formulario.
-
-Una autenticacion correcta devuelve un token JWT:
 ```json
 {
   "access_token": "...",
@@ -250,211 +171,161 @@ Una autenticacion correcta devuelve un token JWT:
 }
 ```
 
-Este token debe enviarse posteriormente mediante:
+### Health check
 
-Authorization: Bearer <token>
-
-## Health Check
-
-La API dispone de un endpoint para comprobar que el servicio esta funcionando:
-
-`GET /api/v1/health`
+```text
+GET /api/v1/health
+```
 
 Respuesta:
+
 ```json
 {
   "status": "ok"
 }
 ```
 
+La documentación completa y los esquemas de entrada/salida pueden consultarse directamente en Swagger.
+
 ## Tests
 
-El proyecto utiliza pytest para realizar tests automatizados.
+El proyecto utiliza pytest para realizar tests de API e integración.
 
-Los tests cubren principalmente:
+Se comprueban, entre otros casos:
 
-- Creacion de usuarios.
+- creación, consulta, actualización y eliminación de usuarios;
+- validación de datos;
+- usuarios duplicados;
+- login correcto e incorrecto;
+- tokens JWT válidos e inválidos;
+- acceso a endpoints protegidos;
+- creación y gestión de tareas;
+- aislamiento de tareas entre usuarios;
+- acceso a recursos pertenecientes a otros usuarios;
+- respuestas `403`, `404`, `409` y `422`.
 
-- Validacion de datos.
-
-- Usuarios duplicados.
-
-- Consulta de usuarios.
-
-- Actualizacion y eliminacion.
-
-- Control de permisos.
-
-- Creacion de tareas.
-
-- Filtrado de tareas por usuario.
-
-- Validacion de tareas.
-
-- Autenticacion.
-
-- Login correcto e incorrecto.
-
-- Tokens JWT validos e invalidos.
-
-- Acceso a endpoints protegidos.
-
-- Usuarios inexistentes.
-
-- Recursos pertenecientes a otros usuarios.
-
-Para ejecutar los tests:
+Ejecutar los tests:
 
 ```bash
 pytest
 ```
 
-Los tests utilizan una base de datos independiente para evitar modificar los datos de desarrollo o produccion.
+Los tests utilizan una base de datos SQLite independiente para no modificar los datos de desarrollo o producción.
 
 ## CI/CD
 
-El proyecto utiliza GitHub Actions para automatizar la ejecucion de tests y el despliegue.
+GitHub Actions ejecuta automáticamente los tests ante cambios en el repositorio.
 
-El flujo implementado es:
 ```text
-             Push / Pull Request
-                      │
-                      ▼
-               GitHub Actions
-                      │
-                      ▼
-             Instalar dependencias
-                      │
-                      ▼
-                   pytest
-                  /     \
-               FAIL     PASS
-                │         │
-                ▼         ▼
-             Stop      Deploy
-                           │
-                           ▼
-                         Render
+Push / Pull Request
+        ↓
+GitHub Actions
+        ↓
+Instalar dependencias
+        ↓
+pytest
+     /      \
+  FAIL      PASS
+   ↓          ↓
+ Stop       Deploy
+              ↓
+            Render
 ```
 
-Los tests se ejecutan automaticamente ante cambios en el repositorio.
+El despliegue a producción se ejecuta únicamente cuando:
 
-El despliegue a produccion solamente se realiza cuando:
+- los tests han finalizado correctamente;
+- el cambio corresponde a la rama `main`.
 
-- Los tests han terminado correctamente.
+## Configuración
 
-- El cambio corresponde a la rama main.
-
-## Configuracion
-
-La aplicacion utiliza variables de entorno para la configuracion sensible.
+La aplicación utiliza variables de entorno para separar la configuración del código.
 
 Ejemplo:
+
 ```text
 DATABASE_URL=...
 JWT_SECRET=...
 ALGORITHM=HS256
 ```
 
-Las variables de entorno no se almacenan en el repositorio.
+Las variables sensibles de producción no se almacenan en el repositorio.
 
-Para ejecutar los tests se utiliza una configuracion independiente mediante `.env.test.`
+El archivo `.env.test` sí se mantiene versionado de forma intencionada porque contiene únicamente configuración no sensible utilizada por pytest y por el pipeline de CI. No debe contener credenciales reales ni secretos reutilizables fuera del entorno de testing.
 
-## Instalacion local
+## Instalación local
 
 Clonar el repositorio:
+
 ```bash
-git clone <repository-url>
+git clone https://github.com/AnggeldDAV/api_tasks.git
 cd api_tasks
 ```
 
 Crear y activar un entorno virtual:
+
 ```bash
 python -m venv venv
 ```
 
 Windows:
+
 ```bash
 venv\Scripts\activate
 ```
 
-Instalar las dependencias:
+Linux/macOS:
+
+```bash
+source venv/bin/activate
+```
+
+Instalar dependencias:
+
 ```bash
 pip install -r requirements.txt
 ```
 
-Configurar las variables de entorno y ejecutar la aplicacion:
+Configurar las variables de entorno necesarias y ejecutar la aplicación:
+
 ```bash
 uvicorn main:app --app-dir app --reload
 ```
 
-La documentacion interactiva estara disponible en:
+Swagger estará disponible en:
+
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-## Documentacion de la API
-FastAPI genera automaticamente documentacion OpenAPI.
+## Decisiones técnicas
 
-Durante el desarrollo puede utilizarse Swagger UI:
-```text
-/docs
-```
+### PostgreSQL en producción y SQLite en tests
 
-Desde Swagger es posible consultar los endpoints y probar el sistema de autenticacion.
+La aplicación utiliza PostgreSQL como base de datos de producción y una base de datos SQLite independiente durante los tests. Esto permite ejecutar la suite de pruebas sin modificar datos reales ni depender de la base de datos desplegada.
 
-## Despliegue
+### Autorización basada en el usuario autenticado
 
-La aplicacion esta preparada para ejecutarse en Render utilizando PostgreSQL como base de datos.
+El `user_id` de una tarea no se recibe desde el cliente al crearla. La API obtiene el usuario a partir del JWT y asigna automáticamente la tarea a ese usuario. Las consultas a tareas se filtran en la base de datos para devolver únicamente los recursos permitidos.
 
-El despliegue se integra con GitHub Actions:
-```text
-GitHub
-   ↓
-GitHub Actions
-   ↓
-pytest
-   ↓
-Render Deploy Hook
-   ↓
-Produccion
-```
-Las credenciales y variables sensibles se gestionan mediante variables de entorno del entorno de produccion.
+### Separación por responsabilidades
 
-## Objetivos del proyecto
+El proyecto separa routers, modelos, schemas, acceso a datos, dependencias, configuración y seguridad para evitar concentrar toda la lógica en los endpoints y facilitar el mantenimiento del código.
 
-Este proyecto se ha desarrollado con los siguientes objetivos:
+### CI antes del despliegue
 
-- Mejorar conocimientos de Python y FastAPI.
+El pipeline obliga a que los tests finalicen correctamente antes de ejecutar el despliegue a Render, evitando desplegar automáticamente cambios que rompan la suite de pruebas.
 
-- Comprender el desarrollo de APIs REST.
-
-- Trabajar con bases de datos relacionales mediante SQLAlchemy.
-
-- Implementar autenticacion y autorizacion.
-
-- Aprender testing automatizado.
-
-- Familiarizarse con CI/CD.
-
-- Realizar un despliegue real de una aplicacion backend.
-
-- Aplicar una estructura de proyecto mantenible y separada por responsabilidades.
-
-## Proximas mejoras
-Algunas mejoras que podrian incorporarse en futuras versiones:
+## Próximas mejoras
 
 - Migraciones de base de datos mediante Alembic.
+- Paginación de resultados.
+- Filtros y ordenación de tareas.
+- Tests unitarios adicionales.
+- Mejoras de logging y observabilidad.
+- Integración del health check directamente en el proceso de despliegue.
+- Dockerización completa del entorno de desarrollo.
 
-- Paginacion de resultados.
+## Objetivo del proyecto
 
-- Filtros y ordenacion de tareas.
-
-- Tests adicionales a nivel unitario.
-
-- Mejoras en logging y observabilidad.
-
-- Endpoint de health check utilizado directamente dentro del pipeline de despliegue.
-
-## Proyecto personal
-Proyecto desarrollado como parte de mi aprendizaje y preparacion al desarrollo backend con Python.
+El objetivo principal ha sido pasar de seguir ejemplos completos a desarrollar una aplicación backend tomando decisiones propias, consultando documentación y resolviendo problemas de implementación de forma progresivamente más autónoma.
