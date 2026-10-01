@@ -5,6 +5,7 @@ env/
 
 # Secret environment files
 .env
+.env.test
 
 # SQLite Tests
 test.db

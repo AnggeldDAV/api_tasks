@@ -28,6 +28,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run pytest
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          ALGORITHM: ${{ secrets.ALGORITHM }}
         run: pytest
 
   deploy:
